@@ -28,6 +28,7 @@ router.post(
         amount,
         status,
         currency,
+        accountName,
       } = req.body;
 
       const payment = new Payment({
@@ -37,6 +38,7 @@ router.post(
         amount,
         status,
         currency,
+        accountName,
       });
 
       await payment.save();
@@ -119,6 +121,19 @@ router.get(
     }
   }
 );
+
+router.post("/get-merchant-payments/:accountId", async (req, res) => {
+  try {
+    const accountId = req.params.accountId;
+
+    const payments = await Payment.find({ merchantAccountNumber: accountId });
+
+    res.status(200).json({ payments });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.message });
+  }
+});
 
 router.get("/revenue-by-month", verifyToken, async (req, res) => {
   try {
