@@ -90,7 +90,7 @@ router.post("/get-payments/:accountId", verifyToken, async (req, res) => {
   }
 });
 
-router.get(
+router.post(
   "/payment-requests-summary/:accountNumber",
   verifyToken,
   async (req, res) => {
@@ -107,6 +107,38 @@ router.get(
       });
       const succeededRequests = await Payment.countDocuments({
         customerAccountNumber: accountNumber,
+        status: "succeeded",
+      });
+
+      res.status(200).json({
+        totalPendingRequests: pendingRequests,
+        totalRejectedRequests: rejectedRequests,
+        totalSucceededRequests: succeededRequests,
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: err.message });
+    }
+  }
+);
+
+router.post(
+  "/payment-requests-summary-merchant/:accountNumber",
+  verifyToken,
+  async (req, res) => {
+    try {
+      const accountNumber = req.params.accountNumber;
+
+      const pendingRequests = await Payment.countDocuments({
+        merchantAccountNumber: accountNumber,
+        status: "pending",
+      });
+      const rejectedRequests = await Payment.countDocuments({
+        merchantAccountNumber: accountNumber,
+        status: "rejected",
+      });
+      const succeededRequests = await Payment.countDocuments({
+        merchantAccountNumber: accountNumber,
         status: "succeeded",
       });
 
