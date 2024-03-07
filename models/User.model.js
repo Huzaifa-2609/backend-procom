@@ -1,11 +1,13 @@
 const mongoose = require("mongoose");
 
 const maiSchemeSchema = new mongoose.Schema({
-  name: {
+  scheme: {
     type: String,
+    required: true,
   },
-  code: {
+  accountNumber: {
     type: String,
+    required: true,
   },
 });
 
@@ -53,7 +55,12 @@ const userSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
-    scheme: [maiSchemeSchema],
+    mai: {
+      type: [maiSchemeSchema],
+      required: function () {
+        return this.role === "merchant";
+      },
+    },
   },
   {
     timestamps: true,

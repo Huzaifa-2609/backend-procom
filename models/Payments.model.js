@@ -28,10 +28,6 @@ const paymentSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
-    crc: {
-      type: String,
-      required: true,
-    },
     currency: {
       type: String,
       required: true,

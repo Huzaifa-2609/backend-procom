@@ -15,7 +15,8 @@ router.post(
   hashPassword,
   async (req, res) => {
     try {
-      const { username, email, phoneNumber, accountNumber } = req.body;
+      const { username, email, phoneNumber, accountNumber, city, accountName } =
+        req.body;
       const hashedPassword = req.hashedPassword;
 
       let user = await User.findOne({ email });
@@ -30,11 +31,13 @@ router.post(
         role: "customer",
         phoneNumber,
         accountNumber,
+        city,
+        accountName,
       });
 
       await user.save();
 
-      res.status(201).json({ message: "Customer created successfully" });
+      return res.status(201).json({ message: "Customer created successfully" });
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: err.message });
@@ -57,7 +60,7 @@ router.post(
         city,
         categoryCode,
         accountName,
-        scheme,
+        mai,
       } = req.body;
       const hashedPassword = req.hashedPassword;
 
@@ -77,7 +80,7 @@ router.post(
         city,
         categoryCode,
         accountName,
-        scheme,
+        mai,
       });
 
       await user.save();
@@ -108,7 +111,7 @@ router.post("/signin", hashPassword, async (req, res) => {
       expiresIn: "1h",
     });
 
-    res.status(200).json({ token, user });
+    res.status(200).json({ user: { token, ...user._doc } });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: err.message });

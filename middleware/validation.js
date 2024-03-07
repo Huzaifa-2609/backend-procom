@@ -47,7 +47,7 @@ const validateMerchantSignupInput = (req, res, next) => {
     city,
     categoryCode,
     accountName,
-    scheme,
+    mai,
   } = req.body;
 
   if (
@@ -59,7 +59,7 @@ const validateMerchantSignupInput = (req, res, next) => {
     !city ||
     !categoryCode ||
     !accountName ||
-    !scheme
+    !mai
   ) {
     return res.status(400).json({ message: "All fields are required" });
   }
@@ -84,7 +84,6 @@ const validateTransactionRequest = (req, res, next) => {
     description,
     amount,
     status,
-    crc,
     currency,
   } = req.body;
 
@@ -94,7 +93,6 @@ const validateTransactionRequest = (req, res, next) => {
     !description ||
     !amount ||
     !status ||
-    !crc ||
     !currency
   ) {
     return res.status(400).json({ message: "All fields are required" });

@@ -1,11 +1,13 @@
 const express = require("express");
 const router = express.Router();
 const Payment = require("../models/Payments.model.js");
+const User = require("../models/User.model.js");
 const { verifyToken } = require("../middleware/verifyToken.js");
 const {
   validateTransactionRequest,
   validatePaymentAction,
 } = require("../middleware/validation.js");
+const { generateQRString, parseQRCode } = require("../helpers/index.js");
 
 router.post(
   "/transaction-request",
@@ -25,7 +27,6 @@ router.post(
         description,
         amount,
         status,
-        crc,
         currency,
       } = req.body;
 
@@ -35,7 +36,6 @@ router.post(
         description,
         amount,
         status,
-        crc,
         currency,
       });
 
@@ -81,16 +81,16 @@ router.put("/action", verifyToken, validatePaymentAction, async (req, res) => {
   }
 });
 
-router.get("/get-payments/:accountId", verifyToken, async (req, res) => {
+router.post("/get-payments/:accountId", verifyToken, async (req, res) => {
   try {
     const accountId = req.params.accountId;
     const accNo = req.user.customerAccountNumber;
-
-    if (accountId !== accNo) {
-      return res
-        .status(403)
-        .json({ message: "Forbidden. You can only access your own payments" });
-    }
+    // console.log()
+    // if (accountId !== accNo) {
+    //   return res
+    //     .status(403)
+    //     .json({ message: "Forbidden. You can only access your own payments" });
+    // }
 
     const payments = await Payment.find({ customerAccountNumber: accountId });
 
@@ -167,27 +167,54 @@ router.get("/revenue-by-month", verifyToken, async (req, res) => {
   }
 });
 
-router.get("/qr-code/paymentId", async (req, res) => {
+router.get("/qr-code/:paymentId", async (req, res) => {
   try {
     const paymentId = req.params.paymentId;
-    const { merchantAccountNumber: merchant } = await Payment.findById(
-      paymentId
-    ).populate("merchantAccountNumber");
+    const payment = await Payment.findById(paymentId);
+    if (!payment) {
+      return res.status(404).json({ message: "Payment not found" });
+    }
+
+    const merchant = await User.findOne({
+      accountNumber: payment.merchantAccountNumber,
+    });
+    if (!merchant) {
+      return res.status(404).json({ message: "Merchant not found" });
+    }
+
+    let mai = {};
+    if (merchant.role === "merchant") {
+      mai = merchant.mai.reduce((acc, curr) => {
+        acc[curr.scheme] = curr.accountNumber;
+        return acc;
+      }, {});
+    } else throw Error();
 
     const merchantData = {
-      categoryCode: merchant.categoryCode,
+      mai,
       mcc: merchant.categoryCode,
       currency: "586",
       countryCode: "PK",
       merchantName: merchant.username,
-      merchantCity: "Karachi",
+      amount: payment.amount,
+      merchantCity: merchant.city,
     };
-
-    const qrString = generateQRString(merchantData);
+    const qrString = await generateQRString(merchantData);
     res.status(200).json({ qrString });
   } catch (error) {
-    console.error(err);
-    res.status(500).json({ message: err.message });
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.post("/qr-code/parse", async (req, res) => {
+  try {
+    const { qrString } = req.body;
+    const parsed = parseQRCode(qrString);
+    res.status(200).json({ parsed });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 

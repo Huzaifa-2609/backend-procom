@@ -1,10 +1,13 @@
 const express = require("express");
+const cors = require("cors");
 const { connectToMongoDB } = require("./connect.js");
 const authRoutes = require("./routes/auth.routes.js");
 const userRoutes = require("./routes/user.routes.js");
 const paymentRoutes = require("./routes/payment.routes.js");
 
 const app = express();
+
+app.use(cors());
 
 app.use(express.json());
 

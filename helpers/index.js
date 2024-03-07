@@ -1,50 +1,86 @@
-function generateQRString(merchantData) {
-  let qrString = "000201";
-  qrString += "010212";
+const emvqr = require("emvqr");
+const { Merchant } = require("steplix-emv-qrcps");
+
+async function generateQRString(merchantData) {
+  const payloadFormatIndicator = Merchant.buildTLV("00", 2, "01");
+  const pointOfInitiationMethod = Merchant.buildTLV("01", 2, "12");
+  let merchantAccountInformation;
 
   Object.entries(merchantData.mai).forEach(([scheme, accountNumber]) => {
-    qrString += `26${("00" + scheme.length).slice(-2)}${scheme}${(
-      "00" + accountNumber.length
-    ).slice(-2)}${accountNumber}`;
+    const merchantAccountInformationData = Merchant.buildTLV(
+      "04",
+      accountNumber.length,
+      accountNumber
+    );
+    console.log(accountNumber);
+    merchantAccountInformation = Merchant.buildMerchantAccountInformation(
+      merchantAccountInformationData
+    );
   });
 
-  qrString += `52${("00" + merchantData.mcc.length).slice(-2)}${
+  const mcc = Merchant.buildTLV(
+    "52",
+    merchantData.mcc.length,
     merchantData.mcc
-  }`;
-
-  qrString += `53${("00" + merchantData.currency.length).slice(-2)}${
+  );
+  const currency = Merchant.buildTLV(
+    "53",
+    merchantData.currency.length,
     merchantData.currency
-  }`;
-
-  qrString += `58${("00" + merchantData.countryCode.length).slice(-2)}${
+  );
+  const countryCode = Merchant.buildTLV(
+    "58",
+    merchantData.countryCode.length,
     merchantData.countryCode
-  }`;
-  qrString += `59${("00" + merchantData.merchantName.length).slice(-2)}${
+  );
+  const merchantName = Merchant.buildTLV(
+    "59",
+    merchantData.merchantName.length,
     merchantData.merchantName
-  }`;
-  qrString += `60${("00" + merchantData.merchantCity.length).slice(-2)}${
+  );
+  const merchantCity = Merchant.buildTLV(
+    "60",
+    merchantData.merchantCity.length,
     merchantData.merchantCity
-  }`;
-  const crc = calculateCRC(qrString);
-  qrString += `6304${crc}`;
-  return qrString;
+  );
+  const amount = Merchant.buildTLV(
+    "54",
+    String(merchantData.amount).length,
+    String(merchantData.amount)
+  );
+
+  const qrData = [
+    payloadFormatIndicator,
+    pointOfInitiationMethod,
+    { visa: merchantAccountInformation },
+    mcc,
+    currency,
+    amount,
+    undefined,
+    undefined,
+    undefined,
+    countryCode,
+    merchantName,
+    merchantCity,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    ,
+  ];
+
+  const qrCode = Merchant.buildEMVQR(...qrData).generatePayload();
+  return qrCode;
 }
 
-function calculateCRC(data) {
-  let crc = 0xffff;
-  for (let i = 0; i < data.length; i++) {
-    crc ^= data.charCodeAt(i);
-    for (let j = 0; j < 8; j++) {
-      if ((crc & 1) !== 0) {
-        crc = (crc >> 1) ^ 0xa001;
-      } else {
-        crc = crc >> 1;
-      }
-    }
-  }
-  return crc.toString(16).toUpperCase();
-}
+const parseQRCode = (qrCodeText) => {
+  const parsed = Merchant.Parser.toEMVQR(qrCodeText).rawData();
+  return JSON.stringify(parsed);
+};
 
 module.exports = {
   generateQRString,
+  parseQRCode,
 };
