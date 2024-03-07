@@ -15,6 +15,9 @@ app.use(express.json());
 connectToMongoDB();
 
 // Routes
+app.use("/", (req, res) => {
+  res.send("running");
+});
 app.use("/api/auth", authRoutes);
 
 app.use("/api/user", userRoutes);
