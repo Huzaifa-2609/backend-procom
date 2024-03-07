@@ -7,7 +7,11 @@ const {
   validateTransactionRequest,
   validatePaymentAction,
 } = require("../middleware/validation.js");
-const { generateQRString, parseQRCode } = require("../helpers/index.js");
+const {
+  generateQRString,
+  parseQRCode,
+  getMonthName,
+} = require("../helpers/index.js");
 
 router.post(
   "/transaction-request",
@@ -258,9 +262,16 @@ router.post("/get-merchant-payments/:accountId", async (req, res) => {
   }
 });
 
-router.get("/revenue-by-month", verifyToken, async (req, res) => {
+router.get("/revenue-by-month/:accountId", verifyToken, async (req, res) => {
   try {
+    const accountId = req.params.accountId;
+
     const revenueData = await Payment.aggregate([
+      {
+        $match: {
+          merchantAccountNumber: accountId,
+        },
+      },
       {
         $group: {
           _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
@@ -273,7 +284,7 @@ router.get("/revenue-by-month", verifyToken, async (req, res) => {
     ]);
 
     const formattedData = revenueData.map((item) => ({
-      month: item._id,
+      month: getMonthName(item._id),
       revenue: item.totalRevenue,
     }));
 
