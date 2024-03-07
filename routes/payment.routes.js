@@ -154,6 +154,97 @@ router.post(
   }
 );
 
+router.post(
+  "/payment-requests-summary-merchant-amount/:accountNumber",
+  verifyToken,
+  async (req, res) => {
+    try {
+      const accountNumber = req.params.accountNumber;
+
+      const pendingRequestsCount = await Payment.countDocuments({
+        merchantAccountNumber: accountNumber,
+        status: "pending",
+      });
+      const rejectedRequestsCount = await Payment.countDocuments({
+        merchantAccountNumber: accountNumber,
+        status: "rejected",
+      });
+      const succeededRequestsCount = await Payment.countDocuments({
+        merchantAccountNumber: accountNumber,
+        status: "succeeded",
+      });
+
+      // Aggregate to sum the amount for pending requests
+      const pendingRequests = await Payment.aggregate([
+        {
+          $match: {
+            merchantAccountNumber: accountNumber,
+            status: "pending",
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            totalAmount: { $sum: "$amount" },
+          },
+        },
+      ]);
+
+      // Aggregate to sum the amount for rejected requests
+      const rejectedRequests = await Payment.aggregate([
+        {
+          $match: {
+            merchantAccountNumber: accountNumber,
+            status: "rejected",
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            totalAmount: { $sum: "$amount" },
+          },
+        },
+      ]);
+
+      // Aggregate to sum the amount for succeeded requests
+      const succeededRequests = await Payment.aggregate([
+        {
+          $match: {
+            merchantAccountNumber: accountNumber,
+            status: "succeeded",
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            totalAmount: { $sum: "$amount" },
+          },
+        },
+      ]);
+
+      // Extracting the totals from the aggregation results
+      const pendingAmount =
+        pendingRequests.length > 0 ? pendingRequests[0].totalAmount : 0;
+      const rejectedAmount =
+        rejectedRequests.length > 0 ? rejectedRequests[0].totalAmount : 0;
+      const succeededAmount =
+        succeededRequests.length > 0 ? succeededRequests[0].totalAmount : 0;
+
+      res.status(200).json({
+        totalPendingAmount: pendingAmount,
+        totalRejectedAmount: rejectedAmount,
+        totalSucceededAmount: succeededAmount,
+        pendingRequestsCount,
+        rejectedRequestsCount,
+        succeededRequestsCount,
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: err.message });
+    }
+  }
+);
+
 router.post("/get-merchant-payments/:accountId", async (req, res) => {
   try {
     const accountId = req.params.accountId;
