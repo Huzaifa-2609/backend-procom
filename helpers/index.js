@@ -1,4 +1,3 @@
-const emvqr = require("emvqr");
 const { Merchant } = require("steplix-emv-qrcps");
 
 async function generateQRString(merchantData) {

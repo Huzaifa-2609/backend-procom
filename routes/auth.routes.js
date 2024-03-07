@@ -108,7 +108,7 @@ router.post("/signin", hashPassword, async (req, res) => {
     }
 
     const token = jwt.sign({ user: user }, "procom2024", {
-      expiresIn: "1h",
+      expiresIn: "30d",
     });
 
     res.status(200).json({ user: { token, ...user._doc } });

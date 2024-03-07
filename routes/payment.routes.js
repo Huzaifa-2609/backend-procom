@@ -53,12 +53,6 @@ router.post(
 
 router.put("/action", verifyToken, validatePaymentAction, async (req, res) => {
   try {
-    if (req.user.role !== "merchant") {
-      return res.status(403).json({
-        message: "Forbidden. Only merchants can perform payment actions",
-      });
-    }
-
     const { paymentId, action } = req.body;
 
     const payment = await Payment.findById(paymentId);
@@ -84,13 +78,6 @@ router.put("/action", verifyToken, validatePaymentAction, async (req, res) => {
 router.post("/get-payments/:accountId", verifyToken, async (req, res) => {
   try {
     const accountId = req.params.accountId;
-    const accNo = req.user.customerAccountNumber;
-    // console.log()
-    // if (accountId !== accNo) {
-    //   return res
-    //     .status(403)
-    //     .json({ message: "Forbidden. You can only access your own payments" });
-    // }
 
     const payments = await Payment.find({ customerAccountNumber: accountId });
 
@@ -107,14 +94,6 @@ router.get(
   async (req, res) => {
     try {
       const accountNumber = req.params.accountNumber;
-      const userId = req.user.customerAccountNumber;
-
-      if (accountNumber !== userId) {
-        return res.status(403).json({
-          message:
-            "Forbidden. You can only access your own payment requests summary",
-        });
-      }
 
       const pendingRequests = await Payment.countDocuments({
         customerAccountNumber: accountNumber,
@@ -207,7 +186,7 @@ router.get("/qr-code/:paymentId", async (req, res) => {
   }
 });
 
-router.post("/qr-code/parse", async (req, res) => {
+router.post("/qr-code/pay", async (req, res) => {
   try {
     const { qrString } = req.body;
     const parsed = parseQRCode(qrString);
